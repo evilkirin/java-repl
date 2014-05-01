@@ -134,14 +134,14 @@ public class REPL implements Runnable {
 		$file.print("    final java.lang.Object $ = ");
 	}
 
-	private String compile(String $expression) throws Exception {
+	private String compile(String expression) throws Exception {
 
 		if (($lastResult != void.class) && ($lastResult != null)) {
 			String $type = getTypeName($lastResult.getClass());
-			$expression = $expression.replaceAll("_", "((" + $type + ")_)");
+			expression = expression.replaceAll("_", "((" + $type + ")_)");
 		}
 
-		$file.print($expression);
+		$file.print(expression);
 
 		$file.println(";\n    return $;\n  }\n}");
 		$file.close();
@@ -414,19 +414,19 @@ public class REPL implements Runnable {
 			return;
 		}
 
-		String $expression = $line;
+		String expression = $line;
 		if ($declareVariable.matcher($line).matches()) {
-			$expression = $line.substring($line.indexOf('=') + 1).trim();
+			expression = $line.substring($line.indexOf('=') + 1).trim();
 		}
 
 		String $firstError = null;
-		String $error = compile($expression);
+		String $error = compile(expression);
 		$lastSource = fileGetContents($tmpFile);
 
 		if (!$error.isEmpty()) {
 			$firstError = compilerMessage($error);
 			prepare();
-			$error = compile("void.class;\n" + $expression);
+			$error = compile("void.class;\n" + expression);
 			$lastSource = fileGetContents($tmpFile);
 		}
 		if (!$error.isEmpty()) {
