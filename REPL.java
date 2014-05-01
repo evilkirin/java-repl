@@ -289,13 +289,13 @@ public class REPL implements Runnable {
 		$out.println($result);
 	}
 
-	public static String safe(final String $line) {
+	public static String safe(final String line) {
 		StringBuilder $string = new StringBuilder();
 		boolean $inString = false;
 		boolean $inEscape = false;
-		for (int $i = 0; $i < $line.length(); $i++) {
+		for (int $i = 0; $i < line.length(); $i++) {
 			if ($inString) {
-				switch ($line.charAt($i)) {
+				switch (line.charAt($i)) {
 				case '"':
 					$inString = $inEscape;
 					break;
@@ -305,10 +305,10 @@ public class REPL implements Runnable {
 				}
 				$inEscape = false;
 			} else {
-				if ($line.charAt($i) == '"') {
+				if (line.charAt($i) == '"') {
 					$inString = true;
 				} else {
-					$string.append($line.charAt($i));
+					$string.append(line.charAt($i));
 				}
 			}
 		}
@@ -318,17 +318,17 @@ public class REPL implements Runnable {
 	private void loop() throws Exception {
 		prepare();
 
-		StringBuilder $lines = new StringBuilder();
+		StringBuilder lines = new StringBuilder();
 		LinkedList<Character> $braces = new LinkedList<Character>();
 		do {
 			System.out.print(">>> ");
-			String $line = $reader.readLine();
-			if ($line == null) {
+			String line = $reader.readLine();
+			if (line == null) {
 				exit();
 				return;
 			}
-			$lines.append($line);
-			String $safeLine = safe($line);
+			lines.append(line);
+			String $safeLine = safe(line);
 			for (int $i = 0; $i < $safeLine.length(); $i++) {
 				char $char = $safeLine.charAt($i);
 				switch ($char) {
@@ -359,64 +359,64 @@ public class REPL implements Runnable {
 			}
 		} while (!$braces.isEmpty());
 
-		String $line = $lines.toString().trim();
-		if ($line.equals("exit")) {
+		String line = lines.toString().trim();
+		if (line.equals("exit")) {
 			exit();
 			return;
-		} else if ($line.equals("help")) {
+		} else if (line.equals("help")) {
 			help();
 			return;
-		} else if ($line.startsWith("help ")) {
-			String $topic = $line.substring(5);
+		} else if (line.startsWith("help ")) {
+			String $topic = line.substring(5);
 			help($topic);
 			return;
-		} else if ($import.matcher($line).matches()) {
+		} else if ($import.matcher(line).matches()) {
 			int $size = $imports.size();
-			$imports.add($line);
+			$imports.add(line);
 			if ($imports.size() > $size) {
-				$out.println("Added " + $line + " (use \"clear\" to undo)");
+				$out.println("Added " + line + " (use \"clear\" to undo)");
 			}
 			return;
-		} else if ($line.equals("about")) {
+		} else if (line.equals("about")) {
 			about();
 			return;
-		} else if ($line.equals("trace")) {
+		} else if (line.equals("trace")) {
 			if ($lastException instanceof Throwable) {
 				((Throwable) $lastException).printStackTrace($out);
 			} else if ($lastException instanceof String) {
 				$out.println($lastException);
 			}
 			return;
-		} else if ($line.equals("vars")) {
+		} else if (line.equals("vars")) {
 			vars();
 			return;
-		} else if ($line.equals("imports")) {
+		} else if (line.equals("imports")) {
 			imports();
 			return;
-		} else if ($line.equals("clear")) {
+		} else if (line.equals("clear")) {
 			clear();
 			return;
-		} else if ($line.equals("clear imports")) {
+		} else if (line.equals("clear imports")) {
 			clearImports();
 			return;
-		} else if ($line.equals("clear vars")) {
+		} else if (line.equals("clear vars")) {
 			clearVars();
 			return;
-		} else if ($line.equals("source")) {
+		} else if (line.equals("source")) {
 			$out.println($lastSource);
 			return;
-		} else if ($line.equals("gc")) {
+		} else if (line.equals("gc")) {
 			System.gc();
 			System.gc();
 			return;
-		} else if ($line.equals("meminfo")) {
+		} else if (line.equals("meminfo")) {
 			meminfo();
 			return;
 		}
 
-		String expression = $line;
-		if ($declareVariable.matcher($line).matches()) {
-			expression = $line.substring($line.indexOf('=') + 1).trim();
+		String expression = line;
+		if ($declareVariable.matcher(line).matches()) {
+			expression = line.substring(line.indexOf('=') + 1).trim();
 		}
 
 		String $firstError = null;
@@ -452,8 +452,8 @@ public class REPL implements Runnable {
 					.invoke($object, $lastResult, $variables);
 			if ($result != void.class) {
 				if ($result != null) {
-					if ($declareVariable.matcher($line).matches()) {
-						String $variableName = $line.substring(0, $line.indexOf('=')).trim();
+					if ($declareVariable.matcher(line).matches()) {
+						String $variableName = line.substring(0, line.indexOf('=')).trim();
 						$variables.put($variableName, $result);
 					}
 					$lastResult = $result;
