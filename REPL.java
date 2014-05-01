@@ -11,9 +11,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import static org.fusesource.jansi.Ansi.*;
-import static org.fusesource.jansi.Ansi.Color.*;
-import org.fusesource.jansi.AnsiConsole;
+// import org.fusesource.jansi.AnsiConsole;
+// import static org.fusesource.jansi.Ansi.*;
+// import static org.fusesource.jansi.Ansi.Color.*;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
@@ -493,9 +493,9 @@ public class REPL implements Runnable {
 	public static void main(final String... args) throws Exception {
 		System.out.println("Java Read-Eval-Print-Loop (better: Read-Compile-Execute), \"help\" for help.");
 
-		AnsiConsole.systemInstall();
+		// AnsiConsole.systemInstall();
 		new REPL(System.in, System.out, System.err).run();
-		AnsiConsole.systemUninstall();
+		// AnsiConsole.systemUninstall();
 	}
 
 	private class MemoryInfo {
