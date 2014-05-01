@@ -70,8 +70,8 @@ public class REPL implements Runnable {
 	/**
 	 * Adds a variable to this REPL (like \"a = ...\").
 	 */
-	public void addVar(final String $name, final Object $object) {
-		$variables.put($name, $object);
+	public void addVar(final String $name, final Object object) {
+		$variables.put($name, object);
 	}
 
 	/**
@@ -101,8 +101,8 @@ public class REPL implements Runnable {
 			this.$repl = $repl;
 		}
 
-		public void println(final Object $object) {
-			$repl.$out.println($object);
+		public void println(final Object object) {
+			$repl.$out.println(object);
 		}
 
 		public void println() {
@@ -442,14 +442,14 @@ public class REPL implements Runnable {
 
 		File $classFile = new File($directory.getCanonicalPath() + '/' + $className + ".class");
 
-		Object $object = null;
+		Object object = null;
 		try {
 			Class<?> $class = $loader.loadClass($className);
-			$object = $class.newInstance();
-			$class.getMethod("setREPL", getClass()).invoke($object, this);
+			object = $class.newInstance();
+			$class.getMethod("setREPL", getClass()).invoke(object, this);
 			Object $result = $class
 					.getMethod("doIt", Object.class, Map.class)
-					.invoke($object, $lastResult, $variables);
+					.invoke(object, $lastResult, $variables);
 			if ($result != void.class) {
 				if ($result != null) {
 					if ($declareVariable.matcher(line).matches()) {
@@ -467,7 +467,7 @@ public class REPL implements Runnable {
 			$lastException = $exc;
 			$err.printf("%s: %s (use \"trace\" for details)\n", $exc.getClass().getSimpleName(), $exc.getMessage());
 		} finally {
-			$object = null; // Clear reference to the only instance
+			object = null; // Clear reference to the only instance
 			$loader = null; // Clear reference to the class loader
 
 			$classFile.delete();
