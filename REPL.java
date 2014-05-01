@@ -26,11 +26,11 @@ public class REPL implements Runnable {
 	final PrintStream err;
 
 	private final JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-	private final Map<String, Object> $variables = new HashMap<String, Object>();
+	private final Map<String, Object> variables = new HashMap<String, Object>();
 	private final Set<String> imports = new HashSet<String>();
 
-	private final Pattern $import = Pattern
-			.compile("^import (static )?([a-z][a-zA-Z]*)(.[a-zA-Z_][a-zA-Z0-9_\\$]*)*(.\\*)?;?$");
+	private final Pattern importPattern = Pattern
+		.compile("^import (static )?([a-z][a-zA-Z]*)(.[a-zA-Z_][a-zA-Z0-9_\\$]*)*(.\\*)?;?$");
 	private final Pattern declareVariable = Pattern.compile("^([a-z][a-zA-Z0-9]*|[a-z\\$][a-zA-Z0-9]+) *=[^=].*$");
 
 	private Object lastException = null;
@@ -41,8 +41,8 @@ public class REPL implements Runnable {
 	 * Creates the Read-Eval-Print-Loop. Typically will be invoked like this:
 	 * <code>new REPL(System.in, System.out, System.err).run();</code>
 	 */
-	public REPL(final InputStream $in, final OutputStream out, final OutputStream err, final String... imports) {
-		reader = new BufferedReader(new InputStreamReader($in));
+	public REPL(final InputStream in, final OutputStream out, final OutputStream err, final String... imports) {
+		reader = new BufferedReader(new InputStreamReader(in));
 
 		this.out = out instanceof PrintStream ? (PrintStream) out : new PrintStream(out);
 		this.err = err instanceof PrintStream ? (PrintStream) err : new PrintStream(err);
@@ -52,9 +52,9 @@ public class REPL implements Runnable {
 			this.imports.add("import java.math.*");
 			this.imports.add("import java.util.*");
 		} else {
-			for (String $import : imports) {
-				if (this.$import.matcher($import).matches()) {
-					this.imports.add($import);
+			for (String _import : imports) {
+				if (this.importPattern.matcher(_import).matches()) {
+					this.imports.add(_import);
 				}
 			}
 		}
@@ -63,15 +63,15 @@ public class REPL implements Runnable {
 	/**
 	 * Adds an import to this REPL (like \"import ...\" in the shell).
 	 */
-	public void addImport(final String $import) {
-		this.imports.add("import " + $import);
+	public void addImport(final String _import) {
+		this.imports.add("import " + _import);
 	}
 
 	/**
 	 * Adds a variable to this REPL (like \"a = ...\").
 	 */
-	public void addVar(final String $name, final Object object) {
-		$variables.put($name, object);
+	public void addVar(final String name, final Object object) {
+		variables.put(name, object);
 	}
 
 	/**
@@ -95,41 +95,41 @@ public class REPL implements Runnable {
 	 * these classes.
 	 */
 	public abstract static class BaseClass {
-		private REPL $repl = null;
+		private REPL repl = null;
 
-		public void setREPL(final REPL $repl) {
-			this.$repl = $repl;
+		public void setREPL(final REPL repl) {
+			this.repl = repl;
 		}
 
 		public void println(final Object object) {
-			$repl.out.println(object);
+			repl.out.println(object);
 		}
 
 		public void println() {
-			$repl.out.println();
+			repl.out.println();
 		}
 	}
 
 	private File tmpFile;
 	private PrintWriter file;
-	private String $className;
+	private String className;
 
 	private void prepare() throws Exception {
 		tmpFile = File.createTempFile(prefix, ".java");
 
 		String fileName = tmpFile.getName();
-		$className = fileName.substring(0, fileName.indexOf(".java"));
+		className = fileName.substring(0, fileName.indexOf(".java"));
 
 		file = new PrintWriter(new FileOutputStream(tmpFile));
-		for (String $import : imports) {
-			file.println($import + ";");
+		for (String _import : imports) {
+			file.println(_import + ";");
 		}
-		file.println("public class " + $className + " extends REPL.BaseClass {");
+		file.println("public class " + className + " extends REPL.BaseClass {");
 		file.println("  public Object doIt(final java.lang.Object _, final java.util.Map<java.lang.String,java.lang.Object> $$) throws Exception {");
-		for (Entry<String, Object> $variable : $variables.entrySet()) {
-			String $type = getTypeName($variable.getValue().getClass());
-			file.println("    " + $type + " " + $variable.getKey()
-					+ " = (" + $type + ") $$.get(\"" + $variable.getKey() + "\");");
+		for (Entry<String, Object> variable : variables.entrySet()) {
+			String type = getTypeName(variable.getValue().getClass());
+			file.println("    " + type + " " + variable.getKey()
+									 + " = (" + type + ") $$.get(\"" + variable.getKey() + "\");");
 		}
 		file.print("    final java.lang.Object $ = ");
 	}
@@ -137,8 +137,8 @@ public class REPL implements Runnable {
 	private String compile(String expression) throws Exception {
 
 		if ((lastResult != void.class) && (lastResult != null)) {
-			String $type = getTypeName(lastResult.getClass());
-			expression = expression.replaceAll("_", "((" + $type + ")_)");
+			String type = getTypeName(lastResult.getClass());
+			expression = expression.replaceAll("_", "((" + type + ")_)");
 		}
 
 		file.print(expression);
@@ -148,28 +148,28 @@ public class REPL implements Runnable {
 
 		OutputStream compilerError = new ByteArrayOutputStream();
 
-		int $exitCode = compiler.run(null, null, compilerError, new String[]{tmpFile.getCanonicalPath()});
-		return ($exitCode == 0) ? "" : compilerError.toString();
+		int exitCode = compiler.run(null, null, compilerError, new String[]{tmpFile.getCanonicalPath()});
+		return (exitCode == 0) ? "" : compilerError.toString();
 	}
 
-	private static String getTypeName(final Class<?> $class) {
-		if (Proxy.isProxyClass($class)) {
-			return $class.getInterfaces()[0].getCanonicalName();
+	private static String getTypeName(final Class<?> _class) {
+		if (Proxy.isProxyClass(_class)) {
+			return _class.getInterfaces()[0].getCanonicalName();
 		}
-		String $name = $class.getCanonicalName();
-		if ($name != null) {
-			return $name;
+		String name = _class.getCanonicalName();
+		if (name != null) {
+			return name;
 		}
-		if ($class.getSuperclass() != Object.class) {
-			$name = $class.getSuperclass().getCanonicalName();
-			if ($name != null) {
-				return $name;
+		if (_class.getSuperclass() != Object.class) {
+			name = _class.getSuperclass().getCanonicalName();
+			if (name != null) {
+				return name;
 			}
 		}
-		if ($class.getInterfaces().length >= 1) {
-			$name = $class.getInterfaces()[0].getCanonicalName();
-			if ($name != null) {
-				return $name;
+		if (_class.getInterfaces().length >= 1) {
+			name = _class.getInterfaces()[0].getCanonicalName();
+			if (name != null) {
+				return name;
 			}
 		}
 		return "Object";
@@ -185,30 +185,30 @@ public class REPL implements Runnable {
 		out.println("  _ always contains the last non-null result.");
 	}
 
-	private void help(final String $topic) {
-		if ($topic.equals("import")) {
+	private void help(final String topic) {
+		if (topic.equals("import")) {
 			out.println("import [static] <packages>.<Class>[.*] / <packages>.*");
-		} else if ($topic.equals("help")) {
+		} else if (topic.equals("help")) {
 			out.println("help <topic>, e.g. \"help import\"");
-		} else if ($topic.equals("meminfo")) {
+		} else if (topic.equals("meminfo")) {
 			out.println("Information about current heap-size.");
-		} else if ($topic.equals("gc")) {
+		} else if (topic.equals("gc")) {
 			out.println("Calls \"System.gc()\" twice.");
-		} else if ($topic.equals("imports")) {
+		} else if (topic.equals("imports")) {
 			out.println("Shows all current imports.");
-		} else if ($topic.equals("vars")) {
+		} else if (topic.equals("vars")) {
 			out.println("Enumerates all currently assigned variables.");
 			out.println("Simply type the name of a variable to show it’s value.");
-		} else if ($topic.equals("trace")) {
+		} else if (topic.equals("trace")) {
 			out.println("Show detailed information on the last error.");
-		} else if ($topic.equals("exit")) {
+		} else if (topic.equals("exit")) {
 			out.println("Exits the REPL (using \"System.exit(0);\").");
-		} else if ($topic.equals("source")) {
+		} else if (topic.equals("source")) {
 			out.println("Show the last generated source.");
-		} else if ($topic.equals("clear")) {
+		} else if (topic.equals("clear")) {
 			out.println("Clears imports and variables.");
 			out.println("  Use \"clear imports\" or \"clear vars\"\n  to clear only imports / vars.");
-		} else if ($topic.equals("example")) {
+		} else if (topic.equals("example")) {
 			out.println("Swing-Example:");
 			out.println("  import javax.swing.*");
 			out.println("  frame = new JFrame()");
@@ -237,17 +237,17 @@ public class REPL implements Runnable {
 	}
 
 	private void vars() {
-		if ($variables.isEmpty()) {
+		if (variables.isEmpty()) {
 			out.println("Zarro variables.");
 		}
-		for (Entry<String, Object> $entry : $variables.entrySet()) {
-			out.printf("%s : %s\n", $entry.getKey(), getTypeName($entry.getValue().getClass()));
+		for (Entry<String, Object> entry : variables.entrySet()) {
+			out.printf("%s : %s\n", entry.getKey(), getTypeName(entry.getValue().getClass()));
 		}
 	}
 
 	private void imports() {
-		for (String $import : imports) {
-			out.println($import);
+		for (String _import : imports) {
+			out.println(_import);
 		}
 	}
 
@@ -261,7 +261,7 @@ public class REPL implements Runnable {
 	}
 
 	private void clearVars() {
-		$variables.clear();
+		variables.clear();
 	}
 
 	private void clearImports() {
@@ -272,12 +272,12 @@ public class REPL implements Runnable {
 		System.exit(0);
 	}
 
-	private String compilerMessage(final String $message) {
+	private String compilerMessage(final String message) {
 		try {
-			return $message
-					.replace(tmpFile.getCanonicalPath(), "source");
+			return message
+				.replace(tmpFile.getCanonicalPath(), "source");
 		} catch (IOException exc) {
-			return $message;
+			return message;
 		}
 	}
 
@@ -291,24 +291,24 @@ public class REPL implements Runnable {
 
 	public static String safe(final String line) {
 		StringBuilder string = new StringBuilder();
-		boolean $inString = false;
-		boolean $inEscape = false;
-		for (int $i = 0; $i < line.length(); $i++) {
-			if ($inString) {
-				switch (line.charAt($i)) {
+		boolean inString = false;
+		boolean inEscape = false;
+		for (int i = 0; i < line.length(); i++) {
+			if (inString) {
+				switch (line.charAt(i)) {
 				case '"':
-					$inString = $inEscape;
+					inString = inEscape;
 					break;
 				case '\\':
-					$inEscape = true;
+					inEscape = true;
 					continue;
 				}
-				$inEscape = false;
+				inEscape = false;
 			} else {
-				if (line.charAt($i) == '"') {
-					$inString = true;
+				if (line.charAt(i) == '"') {
+					inString = true;
 				} else {
-					string.append(line.charAt($i));
+					string.append(line.charAt(i));
 				}
 			}
 		}
@@ -319,7 +319,7 @@ public class REPL implements Runnable {
 		prepare();
 
 		StringBuilder lines = new StringBuilder();
-		LinkedList<Character> $braces = new LinkedList<Character>();
+		LinkedList<Character> braces = new LinkedList<Character>();
 		do {
 			System.out.print(">>> ");
 			String line = reader.readLine();
@@ -328,36 +328,36 @@ public class REPL implements Runnable {
 				return;
 			}
 			lines.append(line);
-			String $safeLine = safe(line);
-			for (int $i = 0; $i < $safeLine.length(); $i++) {
-				char $char = $safeLine.charAt($i);
-				switch ($char) {
+			String safeLine = safe(line);
+			for (int i = 0; i < safeLine.length(); i++) {
+				char _char = safeLine.charAt(i);
+				switch (_char) {
 				case '(':
 				case '{':
 				case '[':
-					$braces.push($char);
+					braces.push(_char);
 					break;
 				case ')':
-					if ($braces.isEmpty() || ($braces.pop() != '(')) {
+					if (braces.isEmpty() || (braces.pop() != '(')) {
 						err.println("Mismatched parenthesis.");
 						return;
 					}
 					break;
 				case '}':
-					if ($braces.isEmpty() || ($braces.pop() != '{')) {
+					if (braces.isEmpty() || (braces.pop() != '{')) {
 						err.println("Mismatched curly brace.");
 						return;
 					}
 					break;
 				case ']':
-					if ($braces.isEmpty() || ($braces.pop() != '[')) {
+					if (braces.isEmpty() || (braces.pop() != '[')) {
 						err.println("Mismatched bracket.");
 						return;
 					}
 					break;
 				}
 			}
-		} while (!$braces.isEmpty());
+		} while (!braces.isEmpty());
 
 		String line = lines.toString().trim();
 		if (line.equals("exit")) {
@@ -367,13 +367,13 @@ public class REPL implements Runnable {
 			help();
 			return;
 		} else if (line.startsWith("help ")) {
-			String $topic = line.substring(5);
-			help($topic);
+			String topic = line.substring(5);
+			help(topic);
 			return;
-		} else if ($import.matcher(line).matches()) {
-			int $size = imports.size();
+		} else if (importPattern.matcher(line).matches()) {
+			int size = imports.size();
 			imports.add(line);
-			if (imports.size() > $size) {
+			if (imports.size() > size) {
 				out.println("Added " + line + " (use \"clear\" to undo)");
 			}
 			return;
@@ -436,25 +436,25 @@ public class REPL implements Runnable {
 		}
 
 		String directoryName = tmpFile.getCanonicalPath();
-		File $directory = new File(directoryName.substring(0, directoryName.indexOf(prefix)));
+		File directory = new File(directoryName.substring(0, directoryName.indexOf(prefix)));
 
-		ClassLoader $loader = new URLClassLoader(new URL[]{$directory.toURI().toURL()});
+		ClassLoader loader = new URLClassLoader(new URL[]{directory.toURI().toURL()});
 
-		File $classFile = new File($directory.getCanonicalPath() + '/' + $className + ".class");
+		File classFile = new File(directory.getCanonicalPath() + '/' + className + ".class");
 
 		Object object = null;
 		try {
-			Class<?> $class = $loader.loadClass($className);
-			object = $class.newInstance();
-			$class.getMethod("setREPL", getClass()).invoke(object, this);
-			Object result = $class
-					.getMethod("doIt", Object.class, Map.class)
-					.invoke(object, lastResult, $variables);
+			Class<?> _class = loader.loadClass(className);
+			object = _class.newInstance();
+			_class.getMethod("setREPL", getClass()).invoke(object, this);
+			Object result = _class
+				.getMethod("doIt", Object.class, Map.class)
+				.invoke(object, lastResult, variables);
 			if (result != void.class) {
 				if (result != null) {
 					if (declareVariable.matcher(line).matches()) {
-						String $variableName = line.substring(0, line.indexOf('=')).trim();
-						$variables.put($variableName, result);
+						String variableName = line.substring(0, line.indexOf('=')).trim();
+						variables.put(variableName, result);
 					}
 					lastResult = result;
 				}
@@ -468,27 +468,27 @@ public class REPL implements Runnable {
 			err.printf("%s: %s (use \"trace\" for details)\n", exc.getClass().getSimpleName(), exc.getMessage());
 		} finally {
 			object = null; // Clear reference to the only instance
-			$loader = null; // Clear reference to the class loader
+			loader = null; // Clear reference to the class loader
 
-			$classFile.delete();
+			classFile.delete();
 		}
 	}
 
 	/**
 	 * For Convenience: Lets you directly start the REPL.
 	 */
-	public static void main(final String... $args) throws Exception {
+	public static void main(final String... args) throws Exception {
 		System.out.println("Java Read-Eval-Print-Loop (better: Read-Compile-Execute), \"help\" for help.");
 		new REPL(System.in, System.out, System.err).run();
 	}
 
 	private class MemoryInfo {
 
-		private final long $total;
+		private final long total;
 		private final long free;
 
 		public MemoryInfo() {
-			$total = Runtime.getRuntime().totalMemory();
+			total = Runtime.getRuntime().totalMemory();
 			free = Runtime.getRuntime().freeMemory();
 		}
 
@@ -499,18 +499,18 @@ public class REPL implements Runnable {
 
 		public String toString(final int factor, final String unit) {
 			return "Memory (total, used, free): "
-					+ ($total / factor) + " " + unit + ", "
-					+ (($total - free) / factor) + " " + unit + ", "
-					+ (free / factor) + " " + unit;
+				+ (total / factor) + " " + unit + ", "
+				+ ((total - free) / factor) + " " + unit + ", "
+				+ (free / factor) + " " + unit;
 		}
 	}
 
 	private static byte[] getBytes(final File file) {
 		try {
 			InputStream f = new FileInputStream(file);
-			int $size = (int) file.length();
-			byte[] result = new byte[$size];
-			f.read(result, 0, $size);
+			int size = (int) file.length();
+			byte[] result = new byte[size];
+			f.read(result, 0, size);
 			return result;
 		} catch (FileNotFoundException exc) {
 			return null;
@@ -524,7 +524,7 @@ public class REPL implements Runnable {
 	}
 
 	private static StringBuilder implode(final String delimiter, final Object[] strings,
-										final StringBuilder result) {
+																			 final StringBuilder result) {
 		if ((strings == null) || (delimiter == null) || (result == null)) {
 			throw new IllegalArgumentException();
 		}
