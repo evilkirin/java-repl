@@ -11,6 +11,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import static org.fusesource.jansi.Ansi.*;
+import static org.fusesource.jansi.Ansi.Color.*;
+import org.fusesource.jansi.AnsiConsole;
+
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
@@ -64,7 +68,7 @@ public class REPL implements Runnable {
 	 * Adds an import to this REPL (like \"import ...\" in the shell).
 	 */
 	public void addImport(final String _import) {
-		this.imports.add("import " + _import);
+		imports.add("import " + _import);
 	}
 
 	/**
@@ -135,7 +139,6 @@ public class REPL implements Runnable {
 	}
 
 	private String compile(String expression) throws Exception {
-
 		if ((lastResult != void.class) && (lastResult != null)) {
 			String type = getTypeName(lastResult.getClass());
 			expression = expression.replaceAll("_", "((" + type + ")_)");
@@ -238,7 +241,7 @@ public class REPL implements Runnable {
 
 	private void vars() {
 		if (variables.isEmpty()) {
-			out.println("Zarro variables.");
+			out.println("No variables defined.");
 		}
 		for (Entry<String, Object> entry : variables.entrySet()) {
 			out.printf("%s : %s\n", entry.getKey(), getTypeName(entry.getValue().getClass()));
@@ -282,6 +285,7 @@ public class REPL implements Runnable {
 	}
 
 	private void showResult(final Object result) {
+		out.print("=> ");
 		if (result instanceof Object[]) {
 			out.println("{" + implode(", ", (Object[]) result) + "}");
 			return;
@@ -315,49 +319,58 @@ public class REPL implements Runnable {
 		return string.toString();
 	}
 
+	private void parseBraces(StringBuilder lines)  {
+		try {
+			LinkedList<Character> braces = new LinkedList<Character>();
+			do {
+				out.print(">>> ");
+				String line = reader.readLine();
+				if (line == null) {
+					exit();
+					return;
+				}
+				lines.append(line);
+				String safeLine = safe(line);
+				for (int i = 0; i < safeLine.length(); i++) {
+					char _char = safeLine.charAt(i);
+					switch (_char) {
+					case '(':
+					case '{':
+					case '[':
+						braces.push(_char);
+						break;
+					case ')':
+						if (braces.isEmpty() || (braces.pop() != '(')) {
+							err.println("Mismatched parenthesis.");
+							return;
+						}
+						break;
+					case '}':
+						if (braces.isEmpty() || (braces.pop() != '{')) {
+							err.println("Mismatched curly brace.");
+							return;
+						}
+						break;
+					case ']':
+						if (braces.isEmpty() || (braces.pop() != '[')) {
+							err.println("Mismatched bracket.");
+							return;
+						}
+						break;
+					}
+				}
+			} while (!braces.isEmpty());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
 	private void loop() throws Exception {
 		prepare();
 
 		StringBuilder lines = new StringBuilder();
-		LinkedList<Character> braces = new LinkedList<Character>();
-		do {
-			System.out.print(">>> ");
-			String line = reader.readLine();
-			if (line == null) {
-				exit();
-				return;
-			}
-			lines.append(line);
-			String safeLine = safe(line);
-			for (int i = 0; i < safeLine.length(); i++) {
-				char _char = safeLine.charAt(i);
-				switch (_char) {
-				case '(':
-				case '{':
-				case '[':
-					braces.push(_char);
-					break;
-				case ')':
-					if (braces.isEmpty() || (braces.pop() != '(')) {
-						err.println("Mismatched parenthesis.");
-						return;
-					}
-					break;
-				case '}':
-					if (braces.isEmpty() || (braces.pop() != '{')) {
-						err.println("Mismatched curly brace.");
-						return;
-					}
-					break;
-				case ']':
-					if (braces.isEmpty() || (braces.pop() != '[')) {
-						err.println("Mismatched bracket.");
-						return;
-					}
-					break;
-				}
-			}
-		} while (!braces.isEmpty());
+
+		parseBraces(lines);
 
 		String line = lines.toString().trim();
 		if (line.equals("exit")) {
@@ -479,7 +492,10 @@ public class REPL implements Runnable {
 	 */
 	public static void main(final String... args) throws Exception {
 		System.out.println("Java Read-Eval-Print-Loop (better: Read-Compile-Execute), \"help\" for help.");
+
+		AnsiConsole.systemInstall();
 		new REPL(System.in, System.out, System.err).run();
+		AnsiConsole.systemUninstall();
 	}
 
 	private class MemoryInfo {
