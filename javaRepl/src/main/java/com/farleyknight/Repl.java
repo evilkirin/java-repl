@@ -75,7 +75,7 @@ public class Repl {
 			// can re-write the expression to return "null; <user's command>",
 			// so it won't give the result of the command, but at least it will
 			// run it.
-			if (error.indexOf("void cannot be converted to Object") != -1) {
+			if (compiler.recoverable(error)) {
 				error = compiler.compile("null; " + line);
 				if (error.length() > 0) {
 					out.println("Couldn't parse source!");
@@ -107,10 +107,7 @@ public class Repl {
 		out.println("Declaring name " + name);
 
 		Object result = compile(expression);
-		if (result.getClass() == Error.class) {
-			out.println("Expression failed to compile. Variable not set.");
-		} else {
-			out.println("Expression successful. Variable set.");
+		if (result.getClass() != Error.class) {
 			variables.put(name, result);
 		}
 	}

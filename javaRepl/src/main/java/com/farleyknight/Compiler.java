@@ -68,6 +68,18 @@ public class Compiler {
 		return "";
 	}
 
+	boolean recoverable(String error) {
+		if (error.indexOf("void cannot be converted to Object") != -1) {
+			return true;
+		}
+
+		if (error.indexOf("illegal start of expression") != -1) {
+			return true;
+		}
+
+		return false;
+	}
+
 	// Run the command that was typed at the prompt
 	Object run() {
 		try {
