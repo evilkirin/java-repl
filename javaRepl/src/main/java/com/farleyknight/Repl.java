@@ -2,6 +2,7 @@ package com.farleyknight;
 
 import java.io.*;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import com.farleyknight.Command;
@@ -44,7 +45,6 @@ public class Repl {
 			while ((line = fileReader.readLine()) != null) {
 				builder.append(line);
 			}
-
 			compile(builder.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -63,8 +63,6 @@ public class Repl {
 	public void declareVar(String line) {
 		String name       = line.substring(0, line.indexOf('=')).trim();
 		String expression = line.substring(line.indexOf('=') + 1).trim();
-
-		out.println("Declaring name " + name);
 
 		Object result = compile(expression);
 		if (result.getClass() != Error.class) {

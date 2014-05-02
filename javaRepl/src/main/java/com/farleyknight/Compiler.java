@@ -2,20 +2,26 @@ package com.farleyknight;
 
 import java.io.*;
 import java.util.*;
+import java.util.Map.*;
 
 import java.net.URL;
 import java.net.URLClassLoader;
 
+import java.lang.reflect.Proxy;
+
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
+import com.farleyknight.Repl;
+
 public class Compiler {
-	File tempFile;
+	File   tempFile;
+	Repl   repl;
 	String line;
 	String fileName;
 	String className;
 	String prefix;
-	Repl repl;
+
 	JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 
 	Compiler(Repl repl) {
@@ -31,7 +37,7 @@ public class Compiler {
 	}
 
 	SourceBuilder sourceBuilder(String line) {
-		return new SourceBuilder(repl.imports, line, className);
+		return new SourceBuilder(repl, line, className);
 	}
 
 	String sourceCode(String line) {
@@ -56,6 +62,18 @@ public class Compiler {
 		}
 	}
 
+	public Object handleError(String error) {
+		try {
+			repl.out.println("Couldn't parse source!");
+			repl.out.println(error);
+			return new Error(error);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+
 	public Object tryRecoverableCompile(String line) {
 		String error = compile(line);
 		if (error.length() > 0) {
@@ -70,9 +88,7 @@ public class Compiler {
 			if (recoverable(error)) {
 				error = compile("null;\n" + line);
 				if (error.length() > 0) {
-					repl.out.println("Couldn't parse source!");
-					repl.out.println(error);
-					return new Error(error);
+					return handleError(error);
 				} else {
 					Object result = run();
 					repl.out.print("=> ");
@@ -80,9 +96,7 @@ public class Compiler {
 					return result;
 				}
 			} else {
-				repl.out.println("Couldn't parse source!");
-				repl.out.println(error);
-				return new Error(error);
+				return handleError(error);
 			}
 		} else {
 			Object result = run();
@@ -96,13 +110,14 @@ public class Compiler {
 		try {
 			writeSourceFile(line);
 			OutputStream compilerError = new ByteArrayOutputStream();
-			int exitCode =
+			String filePath            = tempFile.getCanonicalPath();
+			int exitCode               =
 				this.compiler.run(null, null, compilerError,
-													new String[] { tempFile.getCanonicalPath() });
+													new String[] { filePath });
 			if (exitCode == 0) {
 				return "";
 			} else {
-				return compilerError.toString();
+				return compilerError.toString().replace(filePath, "source");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -136,7 +151,7 @@ public class Compiler {
 
 			Class<?> klass  = loader.loadClass(className);
 			Object object   = klass.newInstance();
-			Object result   = klass.getMethod("doIt").invoke(object);
+			Object result   = klass.getMethod("doIt", Map.class).invoke(object, repl.variables);
 
 			return result;
 		} catch (Exception e) {
@@ -148,26 +163,66 @@ public class Compiler {
 	}
 
 	public static class SourceBuilder {
-		List<String> imports;
+		Repl repl;
 		String line;
 		String className;
 
-		SourceBuilder(List<String> imports, String line, String className) {
-			this.imports   = imports;
+		SourceBuilder(Repl repl, String line, String className) {
+			this.repl      = repl;
 			this.line      = line;
 			this.className = className;
 		}
 
+		public String getTypeName(final Class<?> klass) {
+			if (Proxy.isProxyClass(klass)) {
+				return klass.getInterfaces()[0].getCanonicalName();
+			}
+
+			String name = klass.getCanonicalName();
+
+			if (name != null) {
+				return name;
+			}
+
+			if (klass.getSuperclass() != Object.class) {
+				name = klass.getSuperclass().getCanonicalName();
+				if (name != null) {
+					return name;
+				}
+			}
+
+			if (klass.getInterfaces().length >= 1) {
+				name = klass.getInterfaces()[0].getCanonicalName();
+				if (name != null) {
+					return name;
+				}
+			}
+			return "Object";
+		}
+
+
 		public String toString() {
 			StringBuilder builder = new StringBuilder();
 
-			for (String _import : imports) {
+			// Add imports
+			for (String _import : repl.imports) {
 				builder.append(_import + ";\n");
 			}
 
+			// Necessary for variables
+			builder.append("import java.util.Map;\n");
+
+			// Add main source
 			builder.append("public class " + className +" {\n");
-			builder.append("  public Object doIt() {\n");
-			builder.append("    Object result = " + line + ";\n");
+			builder.append("  public Object doIt(Map<String, Object> variables) {\n");
+
+			for (Entry<String, Object> variable : repl.variables.entrySet()) {
+				String type = getTypeName(variable.getValue().getClass());
+				builder.append("    " + type + " " + variable.getKey()
+											 + " = (" + type + ") variables.get(\"" + variable.getKey() + "\");\n");
+			}
+
+			builder.append("    Object result = \n" + line + "\n;\n");
 			builder.append("    return result;\n");
 			builder.append("  }\n");
 			builder.append("}\n");
