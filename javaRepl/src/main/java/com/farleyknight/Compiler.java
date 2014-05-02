@@ -48,6 +48,50 @@ public class Compiler {
 		}
 	}
 
+	public static class Error {
+		public String message;
+
+		Error(String message) {
+			this.message = message;
+		}
+	}
+
+	public Object tryRecoverableCompile(String line) {
+		String error = compile(line);
+		if (error.length() > 0) {
+			// NOTE: If the user provides a statement like "System.out.println"
+			// which has return type of "void", then we will get an error
+			// "void cannot be converted to Object".
+			//
+			// Our response? To test for that error. If we get that error, we
+			// can re-write the expression to return "null; <user's command>",
+			// so it won't give the result of the command, but at least it will
+			// run it.
+			if (recoverable(error)) {
+				error = compile("null;\n" + line);
+				if (error.length() > 0) {
+					repl.out.println("Couldn't parse source!");
+					repl.out.println(error);
+					return new Error(error);
+				} else {
+					Object result = run();
+					repl.out.print("=> ");
+					repl.out.println(result);
+					return result;
+				}
+			} else {
+				repl.out.println("Couldn't parse source!");
+				repl.out.println(error);
+				return new Error(error);
+			}
+		} else {
+			Object result = run();
+			repl.out.print("=> ");
+			repl.out.println(result);
+			return result;
+		}
+	}
+
 	String compile(String line) {
 		try {
 			writeSourceFile(line);

@@ -55,49 +55,9 @@ public class Repl {
 		this.imports.add(line);
 	}
 
-	public static class Error {
-		public String message;
-
-		Error(String message) {
-			this.message = message;
-		}
-	}
-
 	public Object compile(String line) {
 		Compiler compiler = new Compiler(this);
-		String error      = compiler.compile(line);
-		if (error.length() > 0) {
-			// NOTE: If the user provides a statement like "System.out.println"
-			// which has return type of "void", then we will get an error
-			// "void cannot be converted to Object".
-			//
-			// Our response? To test for that error. If we get that error, we
-			// can re-write the expression to return "null; <user's command>",
-			// so it won't give the result of the command, but at least it will
-			// run it.
-			if (compiler.recoverable(error)) {
-				error = compiler.compile("null; " + line);
-				if (error.length() > 0) {
-					out.println("Couldn't parse source!");
-					out.println(error);
-					return new Error(error);
-				} else {
-					Object result = compiler.run();
-					out.print("=> ");
-					out.println(result);
-					return result;
-				}
-			} else {
-				out.println("Couldn't parse source!");
-				out.println(error);
-				return new Error(error);
-			}
-		} else {
-			Object result = compiler.run();
-			out.print("=> ");
-			out.println(result);
-			return result;
-		}
+		return compiler.tryRecoverableCompile(line);
 	}
 
 	public void declareVar(String line) {
