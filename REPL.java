@@ -457,34 +457,42 @@ public class REPL implements Runnable {
 
 		Object object = null;
 		try {
-			Class<?> _class = loader.loadClass(className);
-			object = _class.newInstance();
-			_class.getMethod("setREPL", getClass()).invoke(object, this);
-			Object result = _class
-				.getMethod("doIt", Object.class, Map.class)
-				.invoke(object, lastResult, variables);
-			if (result != void.class) {
-				if (result != null) {
-					if (declareVariable.matcher(line).matches()) {
-						String variableName = line.substring(0, line.indexOf('=')).trim();
-						variables.put(variableName, result);
-					}
-					lastResult = result;
-				}
-				showResult(result);
-			}
+			executeConsoleCode(object, line, loader);
 		} catch (Throwable exc) {
-			if (exc instanceof InvocationTargetException) {
-				exc = exc.getCause();
-			}
-			lastException = exc;
-			err.printf("%s: %s (use \"trace\" for details)\n", exc.getClass().getSimpleName(), exc.getMessage());
+			handleException(exc);
 		} finally {
 			object = null; // Clear reference to the only instance
 			loader = null; // Clear reference to the class loader
 
 			classFile.delete();
 		}
+	}
+
+	void executeConsoleCode(Object object, String line, ClassLoader loader) throws Exception {
+		Class<?> _class = loader.loadClass(className);
+		object = _class.newInstance();
+		_class.getMethod("setREPL", getClass()).invoke(object, this);
+		Object result = _class
+			.getMethod("doIt", Object.class, Map.class)
+			.invoke(object, lastResult, variables);
+		if (result != void.class) {
+			if (result != null) {
+				if (declareVariable.matcher(line).matches()) {
+					String variableName = line.substring(0, line.indexOf('=')).trim();
+					variables.put(variableName, result);
+				}
+				lastResult = result;
+			}
+			showResult(result);
+		}
+	}
+
+	void handleException(Throwable exc) {
+		if (exc instanceof InvocationTargetException) {
+			exc = exc.getCause();
+		}
+		lastException = exc;
+		err.printf("%s: %s (use \"trace\" for details)\n", exc.getClass().getSimpleName(), exc.getMessage());
 	}
 
 	/**
