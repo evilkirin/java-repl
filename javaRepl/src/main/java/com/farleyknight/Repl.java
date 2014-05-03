@@ -26,9 +26,11 @@ public class Repl {
 
 			this.reader = new ConsoleReader();
 			this.reader.setPrompt(">>> ");
-			this.reader.addCompleter(new StringsCompleter("about", "exit", "quit", "clear", "import", "vars"));
+			this.reader.addCompleter(new StringsCompleter("about", "exit", "quit", "clear", "import", "vars", "methods"));
 
 			this.out = new PrintWriter(reader.getOutput());
+
+			this.variables.put("repl", this);
 			this.out.println("Java REPL by Farley Knight");
 		} catch (Exception e) {
 			e.printStackTrace();

@@ -12,7 +12,9 @@ import java.lang.reflect.Proxy;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
-import com.farleyknight.Repl;
+import java.lang.reflect.Field;
+
+import com.farleyknight.*;
 
 public class Compiler {
 	File   tempFile;
@@ -92,7 +94,7 @@ public class Compiler {
 				} else {
 					Object result = run();
 					repl.out.print("=> ");
-					repl.out.println(result);
+					repl.out.println(Inspector.inspect(result));
 					return result;
 				}
 			} else {
@@ -101,9 +103,13 @@ public class Compiler {
 		} else {
 			Object result = run();
 			repl.out.print("=> ");
-			repl.out.println(result);
+			repl.out.println(Inspector.inspect(result));
 			return result;
 		}
+	}
+
+	String inspect(Object object) {
+		return object.toString();
 	}
 
 	String compile(String line) {
@@ -200,7 +206,6 @@ public class Compiler {
 			return "Object";
 		}
 
-
 		public String toString() {
 			StringBuilder builder = new StringBuilder();
 
@@ -214,7 +219,7 @@ public class Compiler {
 
 			// Add main source
 			builder.append("public class " + className +" {\n");
-			builder.append("  public Object doIt(Map<String, Object> variables) {\n");
+			builder.append("  public Object doIt(Map<String, Object> variables) throws Exception {\n");
 
 			for (Entry<String, Object> variable : repl.variables.entrySet()) {
 				String type = getTypeName(variable.getValue().getClass());
@@ -226,6 +231,7 @@ public class Compiler {
 			builder.append("    return result;\n");
 			builder.append("  }\n");
 			builder.append("}\n");
+
 			return builder.toString();
 		}
 	}
