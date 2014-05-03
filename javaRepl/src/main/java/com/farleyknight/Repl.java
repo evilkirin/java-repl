@@ -26,7 +26,7 @@ public class Repl {
 
 			this.reader = new ConsoleReader();
 			this.reader.setPrompt(">>> ");
-			this.reader.addCompleter(new StringsCompleter("about", "exit", "quit", "clear", "import", "vars", "methods"));
+			this.reader.addCompleter(new StringsCompleter("about", "exit", "quit", "clear", "import", "vars", "methods", "type"));
 
 			this.out = new PrintWriter(reader.getOutput());
 

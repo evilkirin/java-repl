@@ -41,8 +41,8 @@ public class Command {
 		} else if (line.startsWith("load")) {
 			loadFile(line);
 			return true;
-		} else if (line.startsWith("class")) {
-			showClass(line);
+		} else if (line.startsWith("type")) {
+			showType(line);
 			return true;
 		}
 
@@ -50,12 +50,32 @@ public class Command {
 	}
 
 	public static class MethodsFormatter {
+		Object object;
+		String className;
 		Method[] methods;
+
+		// TODO: We should have:
+		//
+		// Defined on: class Foo
+		//   static methods:
+		//     Foo.staticMethod()
+		//
+		//   instance methods:
+		//     instanceMethod()
+
 		Map<String, ArrayList<Method>> methodGrouping
 			= new HashMap<String, ArrayList<Method>>();
 
 		MethodsFormatter(Object object) {
-			this.methods = object.getClass().getMethods();
+			this.object = object;
+
+			if (object instanceof Class) {
+				this.methods = ((Class) object).getMethods();
+				this.className = ((Class) object).getName();
+			} else {
+				this.methods = object.getClass().getMethods();
+				this.className = object.getClass().getName();
+			}
 
 			for (Method m : this.methods) {
 				String klass = m.getDeclaringClass().toString();
@@ -73,9 +93,16 @@ public class Command {
 			for (Entry<String, ArrayList<Method>> entry : this.methodGrouping.entrySet()) {
 				builder.append("Defined on: " + entry.getKey() + "\n");
 				for (Method m : entry.getValue()) {
+					if (Modifier.isStatic(m.getModifiers())) {
+						builder.append("   " + className + ".");
+					} else {
+						builder.append("   ");
+					}
+
 					String args = Inspector.inspect(m.getParameterTypes())
 						.replace("[", "(").replace("]", ")");
-					builder.append("   " + m.getName() + args + "\n");
+					builder.append(m.getName() + args + " => ");
+					builder.append(m.getReturnType().getName() + "\n");
 				}
 				builder.append("\n");
 			}
@@ -92,23 +119,17 @@ public class Command {
 			repl.out.println(error);
 		} else {
 			repl.out.print(new MethodsFormatter(compiler.run()));
-			/*
-			for (Method method : object.getClass().getMethods()) {
-				repl.out.println(method);
-			}
-			*/
 		}
 	}
 
-	void showClass(String line) {
+	void showType(String line) {
 		Compiler compiler = new Compiler(repl);
 		String error = compiler.compile(line.substring(line.indexOf(" ") + 1).trim());
 		if (error.length() > 0) {
 			repl.out.println("Couldn't compile expression!");
 			repl.out.println(error);
 		} else {
-			Object object = compiler.run();
-			repl.out.println(object.getClass());
+			repl.out.println(compiler.run().getClass());
 		}
 	}
 

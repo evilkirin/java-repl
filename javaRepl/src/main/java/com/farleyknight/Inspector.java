@@ -70,6 +70,8 @@ public class Inspector {
 				(object instanceof Byte)    ||
 				(object instanceof Character)) {
 			return object.toString();
+		} else if (object == null) {
+			return "null";
 		} else if (object.getClass() == String.class) {
 			return "\"" + object + "\"";
 		} else {
