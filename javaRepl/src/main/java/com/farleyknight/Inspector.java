@@ -33,10 +33,18 @@ public class Inspector {
 		return builder.toString();
 	}
 
+	public static Field[] getFields(Object object) {
+		try {
+			return object.getClass().getFields();
+		} catch (NoClassDefFoundError e) {
+			return new Field[]{};
+		}
+	}
+
 	public static String deepInspect(Object object) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(object.getClass().getName());
-		Field[] fields = object.getClass().getFields();
+		Field[] fields = getFields(object); // .getClass().getFields();
 
 		if (fields.length == 0)
 			return builder.toString();

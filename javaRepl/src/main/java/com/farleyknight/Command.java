@@ -44,6 +44,12 @@ public class Command {
 		} else if (line.startsWith("type")) {
 			showType(line);
 			return true;
+		} else if (line.equals("packages")) {
+			showPackages();
+			return true;
+		} else if (line.startsWith("classes")) {
+			showClasses(line);
+			return true;
 		}
 
 		return false;
@@ -105,23 +111,69 @@ public class Command {
 		}
 	}
 
-	/*
-	// NOTE: This is a **huge** list of classes. Find a way to narrow
-	// the list down to "normal" usage.
-	void showClasses() {
-		Reflections reflections =
-			new Reflections(ClasspathHelper.forClass(Object.class),
-											new SubTypesScanner(false));
+	public class LoadableClasses {
+		Reflections reflections;
+		Set<String> allClasses;
 
-		Set<String> allClasses = reflections.getStore().getSubTypesOf(Object.class.getName());
+		LoadableClasses() {
+			this.reflections =
+				new Reflections(ClasspathHelper.forClass(Object.class),
+												new SubTypesScanner(false));
 
-		for (String className : allClasses) {
-			this.repl.out.print(className + ",");
+			this.allClasses = reflections.getStore().getSubTypesOf(Object.class.getName());
 		}
 
-		this.repl.out.println();
+		String[] packageNames() {
+			Set<String> packages = new HashSet<String>();
+
+			for (String fullClassName : allClasses) {
+				packages.add(fullClassName.substring(0, fullClassName.lastIndexOf(".")));
+			}
+
+			return sortedStrings(packages);
+		}
+
+		String[] classNames() {
+			return new String[]{};
+		}
+
+		String[] classNames(String packageName) {
+			Set<String> classes = new HashSet<String>();
+
+			for (String fullClassName : allClasses) {
+				String _package = fullClassName.substring(0, fullClassName.lastIndexOf("."));
+				if (_package.equals(packageName)) {
+					classes.add(fullClassName.substring(fullClassName.lastIndexOf(".") + 1));
+				}
+			}
+
+			return sortedStrings(classes);
+		}
+
+		String[] sortedStrings(Set<String> strings) {
+			Object[] stringsAsObjects = strings.toArray();
+			String[] arrayOfStrings   = Arrays.copyOf(stringsAsObjects, stringsAsObjects.length, String[].class);
+
+			Arrays.sort(arrayOfStrings);
+
+			return arrayOfStrings;
+		}
 	}
-	*/
+
+	void showPackages() {
+		String[] packages = (new LoadableClasses()).packageNames();
+		for (String _package : packages) {
+			repl.out.println(_package);
+		}
+	}
+
+	void showClasses(String line) {
+		String _package  = line.substring(line.indexOf(" ") + 1).trim();
+		String[] classes = (new LoadableClasses()).classNames(_package);
+		for (String _class : classes) {
+			repl.out.println(_class);
+		}
+	}
 
 	void about() {
 		this.repl.out.println("Java REPL by Farley Knight");
