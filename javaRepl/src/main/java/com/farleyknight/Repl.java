@@ -53,20 +53,35 @@ public class Repl {
 		}
 	}
 
-	public void addImport(String line) {
-		this.imports.add(line);
-	}
-
 	public Object compile(String line) {
-		Compiler compiler = new Compiler(this);
-		return compiler.tryRecoverableCompile(line);
+		// Compiler compiler = new Compiler(this);
+		// return compiler.tryRecoverableCompile(line);
+
+		Evaluator eval = new Evaluator(this);
+		String error  =  eval.compile(line);
+
+		if (error.length() > 0) {
+			if (Compiler.recoverable(error)) {
+				Executor exec = new Executor(this);
+				error         = exec.compile(line);
+				if (error.length() > 0) {
+					return exec.handleError();
+				} else {
+					return exec.handleSuccess();
+				}
+			} else {
+				return eval.handleError();
+			}
+		} else {
+			return eval.handleSuccess();
+		}
 	}
 
 	public void declareVar(String line) {
 		String name       = line.substring(0, line.indexOf('=')).trim();
 		String expression = line.substring(line.indexOf('=') + 1).trim();
 
-		Object result = compile(expression);
+		Object result     = compile(expression);
 		if (result.getClass() != Error.class) {
 			variables.put(name, result);
 		}

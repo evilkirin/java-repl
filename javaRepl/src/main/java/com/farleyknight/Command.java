@@ -49,92 +49,41 @@ public class Command {
 		return false;
 	}
 
-	public static class MethodsFormatter {
-		Object object;
-		String className;
-		Method[] methods;
-
-		// TODO: We should have:
-		//
-		// Defined on: class Foo
-		//   static methods:
-		//     Foo.staticMethod()
-		//
-		//   instance methods:
-		//     instanceMethod()
-
-		Map<String, ArrayList<Method>> methodGrouping
-			= new HashMap<String, ArrayList<Method>>();
-
-		MethodsFormatter(Object object) {
-			this.object = object;
-
-			if (object instanceof Class) {
-				this.methods = ((Class) object).getMethods();
-				this.className = ((Class) object).getName();
-			} else {
-				this.methods = object.getClass().getMethods();
-				this.className = object.getClass().getName();
-			}
-
-			for (Method m : this.methods) {
-				String klass = m.getDeclaringClass().toString();
-				if (this.methodGrouping.get(klass) == null) {
-					this.methodGrouping.put(klass, new ArrayList<Method>());
-				}
-
-				this.methodGrouping.get(klass).add(m);
-			}
-		}
-
-		public String toString() {
-			StringBuilder builder = new StringBuilder();
-
-			for (Entry<String, ArrayList<Method>> entry : this.methodGrouping.entrySet()) {
-				builder.append("Defined on: " + entry.getKey() + "\n");
-				for (Method m : entry.getValue()) {
-					if (Modifier.isStatic(m.getModifiers())) {
-						builder.append("   " + className + ".");
-					} else {
-						builder.append("   ");
-					}
-
-					String args = Inspector.inspect(m.getParameterTypes())
-						.replace("[", "(").replace("]", ")");
-					builder.append(m.getName() + args + " => ");
-					builder.append(m.getReturnType().getName() + "\n");
-				}
-				builder.append("\n");
-			}
-
-			return builder.toString();
-		}
-	}
-
 	void methods(String line) {
-		Compiler compiler = new Compiler(repl);
-		String error = compiler.compile(line.substring(line.indexOf(" ") + 1).trim());
+		Evaluator eval = new Evaluator(repl);
+		String error = eval.compile(line.substring(line.indexOf(" ") + 1).trim());
 		if (error.length() > 0) {
 			repl.out.println("Couldn't compile expression!");
 			repl.out.println(error);
 		} else {
-			repl.out.print(new MethodsFormatter(compiler.run()));
+			repl.out.print(new MethodsFormatter(eval.run()));
 		}
 	}
 
 	void showType(String line) {
-		Compiler compiler = new Compiler(repl);
-		String error = compiler.compile(line.substring(line.indexOf(" ") + 1).trim());
+		Evaluator eval = new Evaluator(repl);
+		String error   = eval.compile(line.substring(line.indexOf(" ") + 1).trim());
 		if (error.length() > 0) {
 			repl.out.println("Couldn't compile expression!");
 			repl.out.println(error);
 		} else {
-			repl.out.println(compiler.run().getClass());
+			repl.out.println(eval.run().getClass());
 		}
 	}
 
-	void addImport(String line) {
-		this.repl.addImport(line);
+	// TODO: Test if the import would actually work before adding it!
+	// The user could add a bunch of garbage and would crash any new
+	// commands that are entered.
+	public void addImport(String line) {
+		Importer importer = new Importer(repl);
+		String error      = importer.compile(line.trim()).trim();
+
+		if (error.length() > 0) {
+			repl.out.println("Couldn't import!");
+			repl.out.println(error);
+		} else {
+			repl.imports.add(line);
+		}
 	}
 
 	// Load a file
