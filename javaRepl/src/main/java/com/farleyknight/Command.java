@@ -11,7 +11,6 @@ import java.lang.reflect.*;
 
 import com.farleyknight.*;
 
-
 public class Command {
 	public Repl repl;
 
@@ -92,7 +91,7 @@ public class Command {
 		}
 	}
 
-	// Load a file
+	// TODO: Load a file
 	void loadFile(String line) {
 		this.repl.compileFile(line.substring(line.indexOf(" ") + 1));
 	}
@@ -111,11 +110,11 @@ public class Command {
 		}
 	}
 
-	public class LoadableClasses {
+	public static class LoadableClasses {
 		Reflections reflections;
 		Set<String> allClasses;
 
-		LoadableClasses() {
+		public LoadableClasses() {
 			this.reflections =
 				new Reflections(ClasspathHelper.forClass(Object.class),
 												new SubTypesScanner(false));
@@ -123,7 +122,7 @@ public class Command {
 			this.allClasses = reflections.getStore().getSubTypesOf(Object.class.getName());
 		}
 
-		String[] packageNames() {
+		public String[] packageNames() {
 			Set<String> packages = new HashSet<String>();
 
 			for (String fullClassName : allClasses) {
@@ -133,11 +132,11 @@ public class Command {
 			return sortedStrings(packages);
 		}
 
-		String[] classNames() {
+		public String[] classNames() {
 			return new String[]{};
 		}
 
-		String[] classNames(String packageName) {
+		public String[] classNames(String packageName) {
 			Set<String> classes = new HashSet<String>();
 
 			for (String fullClassName : allClasses) {
@@ -150,7 +149,26 @@ public class Command {
 			return sortedStrings(classes);
 		}
 
-		String[] sortedStrings(Set<String> strings) {
+		public String[] publicClasses(String packageName) {
+			try {
+				String[] names = classNames(packageName);
+
+				Set<String> publics = new HashSet<String>();
+
+				for (String name : names) {
+					if (Modifier.isPublic(Class.forName(packageName + "." + name).getModifiers())) {
+						publics.add(name);
+					}
+				}
+
+				return sortedStrings(publics);
+			} catch (Exception e) {
+				e.printStackTrace();
+				return new String[]{};
+			}
+		}
+
+		public String[] sortedStrings(Set<String> strings) {
 			Object[] stringsAsObjects = strings.toArray();
 			String[] arrayOfStrings   = Arrays.copyOf(stringsAsObjects, stringsAsObjects.length, String[].class);
 
